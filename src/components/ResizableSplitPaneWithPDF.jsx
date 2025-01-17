@@ -1,13 +1,20 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { Upload, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
-import * as pdfjsLib from 'pdfjs-dist';
+import React, { useState, useCallback, useEffect } from "react";
+import {
+  Upload,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
+import * as pdfjsLib from "pdfjs-dist";
+import Editor from "../Editor";
 
 // Initialize PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const ResizableSplitPaneWithPDF = () => {
   const [isDragging, setIsDragging] = useState(false);
-  const [splitPosition, setSplitPosition] = useState(60);
+  const [splitPosition, setSplitPosition] = useState(45);
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfDoc, setPdfDoc] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -18,16 +25,17 @@ const ResizableSplitPaneWithPDF = () => {
 
   const handleFileChange = async (event) => {
     const file = event.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
+    if (file && file.type === "application/pdf") {
       setPdfFile(file);
       try {
         const arrayBuffer = await file.arrayBuffer();
-        const loadedPdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const loadedPdf = await pdfjsLib.getDocument({ data: arrayBuffer })
+          .promise;
         setPdfDoc(loadedPdf);
         setNumPages(loadedPdf.numPages);
         setCurrentPage(1);
       } catch (error) {
-        console.error('Error loading PDF:', error);
+        console.error("Error loading PDF:", error);
       }
     }
   };
@@ -39,17 +47,17 @@ const ResizableSplitPaneWithPDF = () => {
       const page = await pdfDoc.getPage(currentPage);
       const viewport = page.getViewport({ scale });
       const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
+      const context = canvas.getContext("2d");
 
       canvas.height = viewport.height;
       canvas.width = viewport.width;
 
       await page.render({
         canvasContext: context,
-        viewport: viewport
+        viewport: viewport,
       }).promise;
     } catch (error) {
-      console.error('Error rendering page:', error);
+      console.error("Error rendering page:", error);
     }
   };
 
@@ -62,62 +70,81 @@ const ResizableSplitPaneWithPDF = () => {
     setIsDragging(true);
   };
 
-  const handleMouseMove = useCallback((e) => {
-    if (!isDragging) return;
-    const container = e.currentTarget;
-    const containerRect = container.getBoundingClientRect();
-    const newPosition = ((e.clientX - containerRect.left) / containerRect.width) * 100;
-    setSplitPosition(Math.min(Math.max(newPosition, 30), 80));
-  }, [isDragging]);
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (!isDragging) return;
+      const container = e.currentTarget;
+      const containerRect = container.getBoundingClientRect();
+      const newPosition =
+        ((e.clientX - containerRect.left) / containerRect.width) * 100;
+      setSplitPosition(Math.min(Math.max(newPosition, 30), 80));
+    },
+    [isDragging]
+  );
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
   }, []);
 
-  const handleGestureStart = useCallback((e) => {
-    // Only handle gesture if it starts within the PDF viewer area
-    if (e.target.tagName === 'CANVAS' || e.target.closest('.pdf-viewer-area')) {
-      e.preventDefault();
-      setInitialScale(scale);
-    }
-  }, [scale]);
+  const handleGestureStart = useCallback(
+    (e) => {
+      // Only handle gesture if it starts within the PDF viewer area
+      if (
+        e.target.tagName === "CANVAS" ||
+        e.target.closest(".pdf-viewer-area")
+      ) {
+        e.preventDefault();
+        setInitialScale(scale);
+      }
+    },
+    [scale]
+  );
 
-  const handleGestureChange = useCallback((e) => {
-    // Only handle gesture if it started within the PDF viewer area
-    if (e.target.tagName === 'CANVAS' || e.target.closest('.pdf-viewer-area')) {
-      e.preventDefault();
-      const newScale = initialScale * e.scale;
-      setScale(Math.min(Math.max(newScale, 0.1), 5.0));
-    }
-  }, [initialScale]);
+  const handleGestureChange = useCallback(
+    (e) => {
+      // Only handle gesture if it started within the PDF viewer area
+      if (
+        e.target.tagName === "CANVAS" ||
+        e.target.closest(".pdf-viewer-area")
+      ) {
+        e.preventDefault();
+        const newScale = initialScale * e.scale;
+        setScale(Math.min(Math.max(newScale, 0.1), 5.0));
+      }
+    },
+    [initialScale]
+  );
 
   const handleGestureEnd = useCallback((e) => {
     // Only handle gesture if it started within the PDF viewer area
-    if (e.target.tagName === 'CANVAS' || e.target.closest('.pdf-viewer-area')) {
+    if (e.target.tagName === "CANVAS" || e.target.closest(".pdf-viewer-area")) {
       e.preventDefault();
     }
   }, []);
 
   const handleWheel = useCallback((e) => {
     // Only handle zoom if the event target is within the PDF viewer area
-    if ((e.ctrlKey || e.metaKey) && (e.target.tagName === 'CANVAS' || e.target.closest('.pdf-viewer-area'))) {
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      (e.target.tagName === "CANVAS" || e.target.closest(".pdf-viewer-area"))
+    ) {
       e.preventDefault();
       const delta = e.deltaY * -0.01;
-      setScale(prevScale => Math.min(Math.max(prevScale + delta, 0.1), 5.0));
+      setScale((prevScale) => Math.min(Math.max(prevScale + delta, 0.1), 5.0));
     }
   }, []);
 
   useEffect(() => {
     if (isDragging) {
-      document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('mouseleave', handleMouseUp);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("mouseleave", handleMouseUp);
     } else {
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('mouseleave', handleMouseUp);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("mouseleave", handleMouseUp);
     }
     return () => {
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('mouseleave', handleMouseUp);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("mouseleave", handleMouseUp);
     };
   }, [isDragging, handleMouseUp]);
 
@@ -147,8 +174,8 @@ const ResizableSplitPaneWithPDF = () => {
       <div className="h-full w-full flex flex-col">
         <div className="bg-gray-100 p-4 border-b flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage <= 1}
               className="p-2 rounded hover:bg-gray-200 disabled:opacity-50"
             >
@@ -157,21 +184,23 @@ const ResizableSplitPaneWithPDF = () => {
             <span className="text-sm">
               Page {currentPage} of {numPages}
             </span>
-            <button 
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, numPages))}
+            <button
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, numPages))
+              }
               disabled={currentPage >= numPages}
               className="p-2 rounded hover:bg-gray-200 disabled:opacity-50"
             >
               <ChevronRight size={20} />
             </button>
-            <button 
-              onClick={() => setScale(prev => prev + 0.1)}
+            <button
+              onClick={() => setScale((prev) => prev + 0.1)}
               className="p-2 rounded hover:bg-gray-200"
             >
               <ZoomIn size={20} />
             </button>
-            <button 
-              onClick={() => setScale(prev => Math.max(prev - 0.1, 0.1))}
+            <button
+              onClick={() => setScale((prev) => Math.max(prev - 0.1, 0.1))}
               className="p-2 rounded hover:bg-gray-200"
             >
               <ZoomOut size={20} />
@@ -188,7 +217,7 @@ const ResizableSplitPaneWithPDF = () => {
           </label>
         </div>
         <div className="flex-1 overflow-auto bg-gray-50 flex items-center justify-center p-4">
-          <div 
+          <div
             className="relative"
             onWheel={handleWheel}
             onGestureStart={handleGestureStart}
@@ -203,11 +232,11 @@ const ResizableSplitPaneWithPDF = () => {
   };
 
   return (
-    <div 
+    <div
       className="w-full h-screen flex relative bg-gray-100 select-none"
       onMouseMove={handleMouseMove}
     >
-      <div 
+      <div
         className="h-full bg-white overflow-hidden"
         style={{ width: `${splitPosition}%` }}
       >
@@ -219,28 +248,11 @@ const ResizableSplitPaneWithPDF = () => {
         onMouseDown={handleMouseDown}
       />
 
-      <div 
+      <div
         className="h-full bg-white overflow-auto"
         style={{ width: `${100 - splitPosition}%` }}
       >
-        <div className="p-4">
-          <h2 className="text-lg font-semibold mb-4">Notes or Additional Content</h2>
-          {pdfFile && (
-            <p className="mb-4">
-              Current file: {pdfFile.name}
-            </p>
-          )}
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-            <p className="text-blue-700">
-              PDF Controls:
-            </p>
-            <ul className="list-disc pl-5 mt-2 space-y-1 text-blue-700">
-              <li>Use the navigation arrows to move between pages</li>
-              <li>Zoom in/out using the zoom controls or trackpad gestures</li>
-              <li>Drag the divider to adjust the view size</li>
-            </ul>
-          </div>
-        </div>
+        <Editor />
       </div>
     </div>
   );
